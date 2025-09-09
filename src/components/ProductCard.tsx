@@ -79,6 +79,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </div>
         )}
 
+        {product.packSizes && (
+          <div>
+            <h4 className="text-sm font-medium mb-1">Pack Sizes:</h4>
+            <p className="text-sm text-muted-foreground">{product.packSizes}</p>
+          </div>
+        )}
+
         {product.priceRange && (
           <div className="bg-accent/30 rounded-lg p-3">
             <h4 className="text-sm font-medium mb-1">Price Range:</h4>

@@ -12,23 +12,23 @@ interface ProductCatalogProps {
 const ProductCatalog: React.FC<ProductCatalogProps> = ({ products }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filters, setFilters] = useState<FilterType>({
-    productType: '',
+    productType: 'all',
     suitableCrops: '',
-    companyName: '',
+    companyName: 'all',
     productName: '',
     brandName: '',
-    availableIn: '',
+    availableIn: 'all',
   });
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
-      const matchesProductType = !filters.productType || 
+      const matchesProductType = filters.productType === 'all' || !filters.productType || 
         product.productType.toLowerCase().includes(filters.productType.toLowerCase());
       
       const matchesCrops = !filters.suitableCrops || 
         product.suitableCrops.toLowerCase().includes(filters.suitableCrops.toLowerCase());
       
-      const matchesCompany = !filters.companyName || 
+      const matchesCompany = filters.companyName === 'all' || !filters.companyName || 
         product.companyName.toLowerCase().includes(filters.companyName.toLowerCase());
       
       const matchesProductName = !filters.productName || 
@@ -37,7 +37,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ products }) => {
       const matchesBrandName = !filters.brandName || 
         product.brandName.toLowerCase().includes(filters.brandName.toLowerCase());
       
-      const matchesAvailableIn = !filters.availableIn || 
+      const matchesAvailableIn = filters.availableIn === 'all' || !filters.availableIn || 
         product.availableIn.toLowerCase().includes(filters.availableIn.toLowerCase());
 
       return matchesProductType && matchesCrops && matchesCompany && 

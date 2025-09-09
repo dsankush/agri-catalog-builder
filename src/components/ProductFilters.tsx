@@ -32,12 +32,12 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({
 
   const clearFilters = () => {
     onFiltersChange({
-      productType: '',
+      productType: 'all',
       suitableCrops: '',
-      companyName: '',
+      companyName: 'all',
       productName: '',
       brandName: '',
-      availableIn: '',
+      availableIn: 'all',
     });
   };
 
@@ -107,7 +107,7 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({
                 <SelectValue placeholder="All types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All types</SelectItem>
+                <SelectItem value="all">All types</SelectItem>
                 {uniqueValues.productTypes.map((type) => (
                   <SelectItem key={type} value={type}>
                     {type}
@@ -127,7 +127,7 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({
                 <SelectValue placeholder="All companies" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All companies</SelectItem>
+                <SelectItem value="all">All companies</SelectItem>
                 {uniqueValues.companies.map((company) => (
                   <SelectItem key={company} value={company}>
                     {company}
@@ -147,7 +147,7 @@ const ProductFiltersComponent: React.FC<ProductFiltersProps> = ({
                 <SelectValue placeholder="All states" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All states</SelectItem>
+                <SelectItem value="all">All states</SelectItem>
                 {uniqueValues.states.map((state) => (
                   <SelectItem key={state} value={state}>
                     {state}

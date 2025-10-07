@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Grid, List, Search } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ProductCard from './ProductCard';
 import ProductFilters from './ProductFilters';
 import { Product, ProductFilters as FilterType } from '@/types/product';
@@ -12,7 +12,8 @@ interface ProductCatalogProps {
 
 const ProductCatalog: React.FC<ProductCatalogProps> = ({ products }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [groupingMode, setGroupingMode] = useState<'all' | 'type' | 'company'>('all');
+  const [universalCompany, setUniversalCompany] = useState<string>('all');
+  const [universalProductType, setUniversalProductType] = useState<string>('all');
   const [filters, setFilters] = useState<FilterType>({
     productType: 'all',
     suitableCrops: '',
@@ -22,8 +23,24 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ products }) => {
     availableIn: 'all',
   });
 
+  // Extract unique companies and product types
+  const uniqueCompanies = useMemo(() => {
+    const companies = new Set(products.map(p => p.companyName));
+    return Array.from(companies).sort();
+  }, [products]);
+
+  const uniqueProductTypes = useMemo(() => {
+    const types = new Set(products.map(p => p.productType));
+    return Array.from(types).sort();
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
+      // Universal filters (main selection)
+      const matchesUniversalCompany = universalCompany === 'all' || product.companyName === universalCompany;
+      const matchesUniversalType = universalProductType === 'all' || product.productType === universalProductType;
+      
+      // Detailed filters
       const matchesProductType = filters.productType === 'all' || !filters.productType || 
         product.productType.toLowerCase().includes(filters.productType.toLowerCase());
       
@@ -42,27 +59,10 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ products }) => {
       const matchesAvailableIn = filters.availableIn === 'all' || !filters.availableIn || 
         product.availableIn.toLowerCase().includes(filters.availableIn.toLowerCase());
 
-      return matchesProductType && matchesCrops && matchesCompany && 
-             matchesProductName && matchesBrandName && matchesAvailableIn;
+      return matchesUniversalCompany && matchesUniversalType && matchesProductType && 
+             matchesCrops && matchesCompany && matchesProductName && matchesBrandName && matchesAvailableIn;
     });
-  }, [products, filters]);
-
-  const groupedProducts = useMemo(() => {
-    if (groupingMode === 'all') {
-      return { 'All Products': filteredProducts };
-    }
-
-    const groups: Record<string, Product[]> = {};
-    filteredProducts.forEach((product) => {
-      const key = groupingMode === 'type' ? product.productType : product.companyName;
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key].push(product);
-    });
-
-    return groups;
-  }, [filteredProducts, groupingMode]);
+  }, [products, universalCompany, universalProductType, filters]);
 
   if (products.length === 0) {
     return (
@@ -84,32 +84,53 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ products }) => {
           </span>
         </div>
         
-        <div className="flex items-center gap-4">
-          <Tabs value={groupingMode} onValueChange={(v) => setGroupingMode(v as 'all' | 'type' | 'company')}>
-            <TabsList>
-              <TabsTrigger value="all">All Products</TabsTrigger>
-              <TabsTrigger value="type">By Type</TabsTrigger>
-              <TabsTrigger value="company">By Company</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant={viewMode === 'grid' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid className="h-4 w-4" />
-            </Button>
-            <Button
-              variant={viewMode === 'list' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setViewMode('list')}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={viewMode === 'grid' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('grid')}
+          >
+            <Grid className="h-4 w-4" />
+          </Button>
+          <Button
+            variant={viewMode === 'list' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode('list')}
+          >
+            <List className="h-4 w-4" />
+          </Button>
         </div>
+      </div>
+
+      <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg">
+        <span className="font-medium">View:</span>
+        <Select value={universalCompany} onValueChange={setUniversalCompany}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Select Company" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Companies</SelectItem>
+            {uniqueCompanies.map((company) => (
+              <SelectItem key={company} value={company}>
+                {company}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={universalProductType} onValueChange={setUniversalProductType}>
+          <SelectTrigger className="w-[200px]">
+            <SelectValue placeholder="Select Product Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Product Types</SelectItem>
+            {uniqueProductTypes.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="flex gap-6">
@@ -131,25 +152,13 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ products }) => {
               </p>
             </div>
           ) : (
-            <div className="space-y-8">
-              {Object.entries(groupedProducts).map(([groupName, groupProducts]) => (
-                <div key={groupName} className="space-y-4">
-                  {groupingMode !== 'all' && (
-                    <div className="border-b pb-2">
-                      <h3 className="text-xl font-semibold">{groupName}</h3>
-                      <p className="text-sm text-muted-foreground">{groupProducts.length} products</p>
-                    </div>
-                  )}
-                  <div className={
-                    viewMode === 'grid' 
-                      ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                      : "space-y-4"
-                  }>
-                    {groupProducts.map((product) => (
-                      <ProductCard key={product.sNo} product={product} />
-                    ))}
-                  </div>
-                </div>
+            <div className={
+              viewMode === 'grid' 
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                : "space-y-4"
+            }>
+              {filteredProducts.map((product) => (
+                <ProductCard key={product.sNo} product={product} />
               ))}
             </div>
           )}

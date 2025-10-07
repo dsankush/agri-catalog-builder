@@ -1,7 +1,6 @@
-import React, { useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Upload, FileSpreadsheet } from "lucide-react";
+import { FileSpreadsheet, Loader2, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import * as XLSX from 'xlsx';
 import { Product } from '@/types/product';
@@ -12,16 +11,19 @@ interface ExcelUploadProps {
 
 const ExcelUpload: React.FC<ExcelUploadProps> = ({ onDataLoad }) => {
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState(false);
 
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
+  useEffect(() => {
+    const loadData = async () => {
       try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const response = await fetch('/kh.csv');
+        if (!response.ok) {
+          throw new Error('Failed to load CSV file');
+        }
+        
+        const text = await response.text();
+        const workbook = XLSX.read(text, { type: 'string' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet);
@@ -49,20 +51,23 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onDataLoad }) => {
         }));
 
         onDataLoad(products);
+        setLoaded(true);
         toast({
-          title: "Upload Successful",
-          description: `Loaded ${products.length} products from the Excel file.`,
+          title: "Data Loaded Successfully",
+          description: `Loaded ${products.length} products from kh.csv`,
         });
       } catch (error) {
         toast({
-          title: "Upload Error",
-          description: "Failed to parse the Excel file. Please check the format.",
+          title: "Load Error",
+          description: "Failed to load kh.csv. Please ensure the file exists in the public directory.",
           variant: "destructive",
         });
+      } finally {
+        setLoading(false);
       }
     };
 
-    reader.readAsArrayBuffer(file);
+    loadData();
   }, [onDataLoad, toast]);
 
   return (
@@ -70,44 +75,32 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onDataLoad }) => {
       <CardHeader className="text-center">
         <CardTitle className="flex items-center justify-center gap-2 text-2xl">
           <FileSpreadsheet className="h-8 w-8 text-primary" />
-          Upload Product Catalog
+          Product Catalog
         </CardTitle>
         <CardDescription className="text-lg">
-          Upload your Excel file to populate the agricultural product catalog
+          Loading agricultural product data from kh.csv
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
-          <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <label htmlFor="excel-upload" className="cursor-pointer">
-            <Button asChild variant="hero" size="lg">
-              <span>Choose Excel File</span>
-            </Button>
-          </label>
-          <input
-            id="excel-upload"
-            type="file"
-            accept=".xlsx,.xls"
-            onChange={handleFileUpload}
-            className="hidden"
-          />
-          <p className="text-sm text-muted-foreground mt-2">
-            Supports .xlsx and .xls files
-          </p>
+        <div className="border-2 border-border rounded-lg p-8 text-center">
+          {loading ? (
+            <>
+              <Loader2 className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
+              <p className="text-muted-foreground">Loading product data...</p>
+            </>
+          ) : loaded ? (
+            <>
+              <CheckCircle className="h-12 w-12 text-primary mx-auto mb-4" />
+              <p className="text-foreground font-medium">Data loaded successfully!</p>
+            </>
+          ) : (
+            <p className="text-destructive">Failed to load data</p>
+          )}
         </div>
         
         <div className="bg-accent/30 rounded-lg p-4 text-sm text-muted-foreground">
-          <h4 className="font-medium text-foreground mb-2">Expected Excel Columns:</h4>
-          <div className="grid grid-cols-2 gap-1 text-xs">
-            <span>• Company Name</span>
-            <span>• Product Name</span>
-            <span>• Brand Name</span>
-            <span>• Product Type</span>
-            <span>• Suitable Crops</span>
-            <span>• Available In (States)</span>
-            <span>• Description</span>
-            <span>• And more...</span>
-          </div>
+          <h4 className="font-medium text-foreground mb-2">Data Source:</h4>
+          <p className="text-xs">Loading from: <code className="bg-background px-2 py-1 rounded">public/kh.csv</code></p>
         </div>
       </CardContent>
     </Card>

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from "@/components/ui/button";
 import { Grid, List, Search } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProductCard from './ProductCard';
 import ProductFilters from './ProductFilters';
 import { Product, ProductFilters as FilterType } from '@/types/product';
@@ -11,6 +12,7 @@ interface ProductCatalogProps {
 
 const ProductCatalog: React.FC<ProductCatalogProps> = ({ products }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [groupingMode, setGroupingMode] = useState<'all' | 'type' | 'company'>('all');
   const [filters, setFilters] = useState<FilterType>({
     productType: 'all',
     suitableCrops: '',
@@ -45,6 +47,23 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ products }) => {
     });
   }, [products, filters]);
 
+  const groupedProducts = useMemo(() => {
+    if (groupingMode === 'all') {
+      return { 'All Products': filteredProducts };
+    }
+
+    const groups: Record<string, Product[]> = {};
+    filteredProducts.forEach((product) => {
+      const key = groupingMode === 'type' ? product.productType : product.companyName;
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(product);
+    });
+
+    return groups;
+  }, [filteredProducts, groupingMode]);
+
   if (products.length === 0) {
     return (
       <div className="text-center py-12">
@@ -57,7 +76,7 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ products }) => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold">Product Catalog</h2>
           <span className="text-muted-foreground">
@@ -65,21 +84,31 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ products }) => {
           </span>
         </div>
         
-        <div className="flex items-center gap-2">
-          <Button
-            variant={viewMode === 'grid' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('grid')}
-          >
-            <Grid className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === 'list' ? 'default' : 'outline'}
-            size="sm"
-            onClick={() => setViewMode('list')}
-          >
-            <List className="h-4 w-4" />
-          </Button>
+        <div className="flex items-center gap-4">
+          <Tabs value={groupingMode} onValueChange={(v) => setGroupingMode(v as 'all' | 'type' | 'company')}>
+            <TabsList>
+              <TabsTrigger value="all">All Products</TabsTrigger>
+              <TabsTrigger value="type">By Type</TabsTrigger>
+              <TabsTrigger value="company">By Company</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant={viewMode === 'grid' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === 'list' ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setViewMode('list')}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -102,13 +131,25 @@ const ProductCatalog: React.FC<ProductCatalogProps> = ({ products }) => {
               </p>
             </div>
           ) : (
-            <div className={
-              viewMode === 'grid' 
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                : "space-y-4"
-            }>
-              {filteredProducts.map((product) => (
-                <ProductCard key={product.sNo} product={product} />
+            <div className="space-y-8">
+              {Object.entries(groupedProducts).map(([groupName, groupProducts]) => (
+                <div key={groupName} className="space-y-4">
+                  {groupingMode !== 'all' && (
+                    <div className="border-b pb-2">
+                      <h3 className="text-xl font-semibold">{groupName}</h3>
+                      <p className="text-sm text-muted-foreground">{groupProducts.length} products</p>
+                    </div>
+                  )}
+                  <div className={
+                    viewMode === 'grid' 
+                      ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                      : "space-y-4"
+                  }>
+                    {groupProducts.map((product) => (
+                      <ProductCard key={product.sNo} product={product} />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           )}
